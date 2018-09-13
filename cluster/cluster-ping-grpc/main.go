@@ -2,8 +2,9 @@ package main
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/oklahomer/protoactor-go-sender-example/remote/messages"
+	"github.com/AsynkronIT/protoactor-go/cluster"
+	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/oklahomer/protoactor-go-sender-example/cluster/messages"
 	"log"
 	"os"
 	"os/signal"
@@ -14,8 +15,7 @@ import (
 var cnt uint64 = 0
 
 type pingActor struct {
-	cnt     uint
-	pongPid *actor.PID
+	cnt uint
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
@@ -26,20 +26,17 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		// Below both work.
-		//
-		//future := p.pongPid.RequestFuture(ping, time.Second)
-		future := ctx.RequestFuture(p.pongPid, ping, time.Second)
-		result, err := future.Result()
+		grain := messages.GetPongerGrain("ponger-1")
+		pong, err := grain.SendPing(ping)
 		if err != nil {
 			log.Print(err.Error())
 			return
 		}
-		log.Printf("Received %#v", result)
+		log.Printf("Received %#v", pong)
 
 	case *messages.Pong:
 		// Never comes here.
-		// When the pong actor responds to the sender,
+		// When the pong grain responds to the sender's gRPC call,
 		// the sender is not a ping actor but a future process.
 		log.Print("Received pong message")
 
@@ -47,14 +44,14 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	remote.Start("127.0.0.1:8081")
-
-	remotePong := actor.NewPID("127.0.0.1:8080", "pongActorID")
+	cp, err := consul.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cluster.Start("cluster-grpc-example", "127.0.0.1:8081", cp)
 
 	pingProps := actor.FromProducer(func() actor.Actor {
-		return &pingActor{
-			pongPid: remotePong,
-		}
+		return &pingActor{}
 	})
 	pingPid := actor.Spawn(pingProps)
 
