@@ -22,9 +22,7 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		// Below both work.
-		//
-		//p.pongPid.Request(&ping{}, ctx.Self())
+		// ctx.Send() do not set sender information and hence the recipient can not respond.
 		ctx.Request(p.pongPid, &ping{})
 
 	case *pong:
@@ -34,30 +32,26 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	pongProps := actor.FromFunc(func(ctx actor.Context) {
+	rootContext := actor.EmptyRootContext
+
+	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
 			log.Print("Received ping message")
-			// Below both work in this example, but their behavior slightly differ.
-			// ctx.Sender().Tell() panics and recovers if the sender is nil;
-			// while ctx.Respond() checks the presence of sender and redirects the message to dead letter process
-			// when sender is absent.
-			//
-			//ctx.Sender().Tell(&pong{})
 			ctx.Respond(&pong{})
 
 		default:
 
 		}
 	})
-	pongPid := actor.Spawn(pongProps)
+	pongPid := rootContext.Spawn(pongProps)
 
-	pingProps := actor.FromProducer(func() actor.Actor {
+	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: pongPid,
 		}
 	})
-	pingPid := actor.Spawn(pingProps)
+	pingPid := rootContext.Spawn(pingProps)
 
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt)
@@ -69,11 +63,11 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			pingPid.Tell(struct{}{})
+			rootContext.Send(pingPid, struct{}{})
 
 		case <-finish:
-			return
 			log.Print("Finish")
+			return
 
 		}
 	}
