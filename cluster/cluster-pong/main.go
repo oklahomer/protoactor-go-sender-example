@@ -20,7 +20,6 @@ func (*ponger) Receive(ctx actor.Context) {
 	case *messages.Ping:
 		pong := &messages.Pong{Cnt: msg.Cnt}
 		log.Print("Received ping message")
-		//ctx.Sender().Tell(pong)
 		ctx.Respond(pong)
 
 	default:
@@ -29,7 +28,7 @@ func (*ponger) Receive(ctx actor.Context) {
 }
 
 func main() {
-	remote.Register("Ponger", actor.FromProducer(func() actor.Actor {
+	remote.Register("Ponger", actor.PropsFromProducer(func() actor.Actor {
 		return &ponger{}
 	}))
 
@@ -40,7 +39,7 @@ func main() {
 	cluster.Start("cluster-example", "127.0.0.1:8080", cp)
 
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, os.Interrupt)
+	signal.Notify(finish, syscall.SIGINT)
 	signal.Notify(finish, syscall.SIGTERM)
 	<-finish
 }
