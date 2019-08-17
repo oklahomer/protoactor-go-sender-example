@@ -34,10 +34,9 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		}
 		// Below do not set ctx.Self() as sender,
 		// and hence the recipient has no knowledge of the sender
-		// even though the message is sent from another actor.
+		// even though the message is sent from one actor to another.
 		//
-		// ctx.Send(grainPid, ping)
-		ctx.Request(grainPid, ping)
+		ctx.Send(grainPid, ping)
 
 	case *messages.Pong:
 		// Never comes here.

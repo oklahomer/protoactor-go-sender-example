@@ -24,11 +24,13 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	case struct{}:
 		// Below do not set ctx.Self() as sender,
 		// and hence the recipient has no knowledge of the sender
-		// even though the message is sent from another actor.
+		// even though the message is sent from one actor to another.
 		//
-		ctx.Request(p.pongPid, &ping{})
+		ctx.Send(p.pongPid, &ping{})
 
 	case *pong:
+		// Never comes here.
+		// When the pong actor tries to respond, the sender is not set.
 		log.Print("Received pong message")
 
 	}
