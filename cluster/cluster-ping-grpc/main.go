@@ -32,7 +32,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			log.Print(err.Error())
 			return
 		}
-		log.Printf("Received %#v", pong)
+		log.Printf("Received %v", pong)
 
 	case *messages.Pong:
 		// Never comes here.
@@ -50,10 +50,12 @@ func main() {
 	}
 	cluster.Start("cluster-grpc-example", "127.0.0.1:8081", cp)
 
-	pingProps := actor.FromProducer(func() actor.Actor {
+	rootContext := actor.EmptyRootContext
+
+	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{}
 	})
-	pingPid := actor.Spawn(pingProps)
+	pingPid := rootContext.Spawn(pingProps)
 
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt)
@@ -65,11 +67,11 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			pingPid.Tell(struct{}{})
+			rootContext.Send(pingPid, struct{}{})
 
 		case <-finish:
-			return
 			log.Print("Finish")
+			return
 
 		}
 	}
