@@ -35,7 +35,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			log.Print(err.Error())
 			return
 		}
-		log.Printf("Received %#v", result)
+		log.Printf("Received %v", result)
 
 	case *messages.Pong:
 		// Never comes here.
@@ -49,17 +49,18 @@ func (p *pingActor) Receive(ctx actor.Context) {
 func main() {
 	remote.Start("127.0.0.1:8081")
 
-	remotePong := actor.NewPID("127.0.0.1:8080", "pongActorID")
+	rootContext := actor.EmptyRootContext
 
-	pingProps := actor.FromProducer(func() actor.Actor {
+	remotePong := actor.NewPID("127.0.0.1:8080", "pongActorID")
+	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: remotePong,
 		}
 	})
-	pingPid := actor.Spawn(pingProps)
+	pingPid := rootContext.Spawn(pingProps)
 
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, os.Interrupt)
+	signal.Notify(finish, syscall.SIGINT)
 	signal.Notify(finish, syscall.SIGTERM)
 
 	ticker := time.NewTicker(1 * time.Second)
@@ -68,11 +69,11 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			pingPid.Tell(struct{}{})
+			rootContext.Send(pingPid, struct{}{})
 
 		case <-finish:
-			return
 			log.Print("Finish")
+			return
 
 		}
 	}
