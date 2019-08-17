@@ -33,16 +33,13 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			return
 		}
 
-		// Below both work.
-		//
-		//future := grainPid.RequestFuture(ping, time.Second)
 		future := ctx.RequestFuture(grainPid, ping, time.Second)
 		result, err := future.Result()
 		if err != nil {
 			log.Print(err.Error())
 			return
 		}
-		log.Printf("Received %#v", result)
+		log.Printf("Received %v", result)
 
 	case *messages.Pong:
 		// Never comes here.
@@ -60,13 +57,15 @@ func main() {
 	}
 	cluster.Start("cluster-example", "127.0.0.1:8081", cp)
 
-	pingProps := actor.FromProducer(func() actor.Actor {
+	rootCtx := actor.EmptyRootContext
+
+	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{}
 	})
-	pingPid := actor.Spawn(pingProps)
+	pingPid := rootCtx.Spawn(pingProps)
 
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, os.Interrupt)
+	signal.Notify(finish, syscall.SIGINT)
 	signal.Notify(finish, syscall.SIGTERM)
 
 	ticker := time.NewTicker(1 * time.Second)
@@ -75,11 +74,11 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			pingPid.Tell(struct{}{})
+			rootCtx.Send(pingPid, struct{}{})
 
 		case <-finish:
-			return
 			log.Print("Finish")
+			return
 
 		}
 	}

@@ -4,14 +4,14 @@ This repository contains supplemental examples for my blog article, [[Golang] Pr
 
 # Local
 For local message passing, see below directory:
-- local-tell ... Use Tell() for local message passing. The recipient actor cannot refer to the sender actor.
+- local-send ... Use Send() for local message passing. The recipient actor cannot refer to the sender actor.
 - local-request ... Use Request() for local message passing. The recipient actor can refer to the sender actor.
 - local-future ... Use RequestFuture() for local message passing. Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
 # Remote
 - remote/messages ... Contain Protobuf serializable message structures.
 - rmeote/remote-pong ... A process that returns pong message to sender.
-- remote/remote-ping-tell ... A process that sends message to pong actor by Tell(). The recipient cannot refer to the sender actor.
+- remote/remote-ping-send ... A process that sends message to pong actor by Send(). The recipient cannot refer to the sender actor.
 - remote/remote-ping-request ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
 - remote/remote-poing-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
@@ -20,7 +20,7 @@ For local message passing, see below directory:
 
 ## Cluster Grain usage with remote communication
 - cluster/cluster-pong-remote ... A process that returns pong message to the sender based on remote actor implementation.
-- cluster/cluster-ping-tell ... A process that sends message to pong actor by Tell(). The recipient cannot refer to the sender actor.
+- cluster/cluster-ping-send ... A process that sends message to pong actor by Send(). The recipient cannot refer to the sender actor.
 - cluster/cluster-ping-request ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
 - cluster/cluster-ping-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
