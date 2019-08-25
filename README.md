@@ -15,7 +15,7 @@ For local message passing, see below directory:
 - remote/remote-ping-request ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
 - remote/remote-poing-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
-# Cluster Grian
+# Cluster Grain
 - cluster/messages ... Contain Protobuf serializable message structures and generated actor.Actor implementation for gRPC based communication.
 
 ## Cluster Grain usage with remote communication
