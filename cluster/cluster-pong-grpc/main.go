@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 )
 
 type ponger struct {
@@ -32,25 +31,34 @@ func (*ponger) SendPing(ping *messages.Ping, ctx cluster.GrainContext) (*message
 }
 
 func main() {
+	// Setup actor system
+	system := actor.NewActorSystem()
+	messages.SetSystem(system)
+
 	messages.PongerFactory(func() messages.Ponger {
 		return &ponger{}
 	})
 
-	// kind name must be the same one as protos.proto's service name
-	// This name is set in PongerGrain.SendPingWithOpts
-	remote.Register("Ponger", actor.PropsFromProducer(func() actor.Actor {
-		return &messages.PongerActor{}
-	}))
+	// Prepare remote env that listens to 8080
+	remoteConfig := remote.Configure("127.0.0.1", 8080)
 
+	// Configure cluster on top of the above remote env
 	cp, err := consul.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.Start("cluster-grpc-example", "127.0.0.1:8080", cp)
+	clusterKind := cluster.NewKind(
+		"Ponger",
+		actor.PropsFromProducer(func() actor.Actor {
+			return &messages.PongerActor{}
+		}))
+	clusterConfig := cluster.Configure("cluster-grpc-example", cp, remoteConfig, clusterKind)
+	c := cluster.New(system, clusterConfig)
+	messages.SetCluster(c)
+	c.Start()
 
+	// Run till signal comes
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, syscall.SIGINT)
-	signal.Notify(finish, syscall.SIGTERM)
+	signal.Notify(finish, os.Interrupt, os.Kill)
 	<-finish
-	log.Print("Finish")
 }

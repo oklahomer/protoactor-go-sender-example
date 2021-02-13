@@ -1,4 +1,3 @@
-
 package messages
 
 import (
@@ -10,7 +9,6 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -18,8 +16,19 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-var rootContext = actor.EmptyRootContext
-	
+var system *actor.ActorSystem
+
+func SetSystem(sys *actor.ActorSystem) {
+	system = sys
+}
+
+var c *cluster.Cluster
+
+// SetCluster pass created cluster
+func SetCluster(cluster *cluster.Cluster) {
+	c = cluster
+}
+
 var xPongerFactory func() Ponger
 
 // PongerFactory produces a Ponger
@@ -36,68 +45,50 @@ func GetPongerGrain(id string) *PongerGrain {
 type Ponger interface {
 	Init(id string)
 	Terminate()
-		
+
 	SendPing(*Ping, cluster.GrainContext) (*Pong, error)
-		
 }
 
 // PongerGrain holds the base data for the PongerGrain
 type PongerGrain struct {
 	ID string
 }
-	
+
 // SendPing requests the execution on to the cluster using default options
 func (g *PongerGrain) SendPing(r *Ping) (*Pong, error) {
-	return g.SendPingWithOpts(r, cluster.DefaultGrainCallOptions())
+	return g.SendPingWithOpts(r, cluster.DefaultGrainCallOptions(c))
 }
 
 // SendPingWithOpts requests the execution on to the cluster
-func (g *PongerGrain) SendPingWithOpts(r *Ping, opts *cluster.GrainCallOptions) (*Pong, error) {
-	fun := func() (*Pong, error) {
-			pid, statusCode := cluster.Get(g.ID, "Ponger")
-			if statusCode != remote.ResponseStatusCodeOK && statusCode != remote.ResponseStatusCodePROCESSNAMEALREADYEXIST {
-				return nil, fmt.Errorf("get PID failed with StatusCode: %v", statusCode)
-			}
-			bytes, err := proto.Marshal(r)
-			if err != nil {
-				return nil, err
-			}
-			request := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-			response, err := rootContext.RequestFuture(pid, request, opts.Timeout).Result()
-			if err != nil {
-				return nil, err
-			}
-			switch msg := response.(type) {
-			case *cluster.GrainResponse:
-				result := &Pong{}
-				err = proto.Unmarshal(msg.MessageData, result)
-				if err != nil {
-					return nil, err
-				}
-				return result, nil
-			case *cluster.GrainErrorResponse:
-				return nil, errors.New(msg.Err)
-			default:
-				return nil, errors.New("unknown response")
-			}
-		}
-	
-	var res *Pong
-	var err error
-	for i := 0; i < opts.RetryCount; i++ {
-		res, err = fun()
-		if err == nil || err.Error() != "future: timeout" {
-			return res, err
-		} else if opts.RetryAction != nil {
-				opts.RetryAction(i)
-		}
+func (g *PongerGrain) SendPingWithOpts(r *Ping, opts ...*cluster.GrainCallOptions) (*Pong, error) {
+	bytes, err := proto.Marshal(r)
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	request := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
+	response, err := c.Call(g.ID, "Ponger", request, opts...)
+	if err != nil {
+		return nil, err
+	}
+	switch msg := response.(type) {
+	case *cluster.GrainResponse:
+		result := &Pong{}
+		err = proto.Unmarshal(msg.MessageData, result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	case *cluster.GrainErrorResponse:
+		return nil, errors.New(msg.Err)
+	default:
+		return nil, errors.New("unknown response")
+	}
 }
 
 // SendPingChan allows to use a channel to execute the method using default options
 func (g *PongerGrain) SendPingChan(r *Ping) (<-chan *Pong, <-chan error) {
-	return g.SendPingChanWithOpts(r, cluster.DefaultGrainCallOptions())
+	return g.SendPingChanWithOpts(r, cluster.DefaultGrainCallOptions(c))
 }
 
 // SendPingChanWithOpts allows to use a channel to execute the method
@@ -116,11 +107,10 @@ func (g *PongerGrain) SendPingChanWithOpts(r *Ping, opts *cluster.GrainCallOptio
 	}()
 	return c, e
 }
-	
 
 // PongerActor represents the actor structure
 type PongerActor struct {
-	inner Ponger
+	inner   Ponger
 	Timeout *time.Duration
 }
 
@@ -136,14 +126,14 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 		}
 	case *actor.ReceiveTimeout:
 		a.inner.Terminate()
-		ctx.Self().Poison()
+		system.Root.PoisonFuture(ctx.Self()).Wait()
 
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
-			
+
 		case 0:
 			req := &Ping{}
 			err := proto.Unmarshal(msg.MessageData, req)
@@ -162,14 +152,9 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 			}
-		
+
 		}
 	default:
 		log.Printf("Unknown message %v", msg)
 	}
 }
-
-	
-
-
-

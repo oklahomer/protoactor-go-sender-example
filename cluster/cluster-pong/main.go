@@ -5,11 +5,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/consul"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/oklahomer/protoactor-go-sender-example/remote/messages"
+	"github.com/oklahomer/protoactor-go-sender-example/cluster/messages"
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 )
 
 type ponger struct {
@@ -28,18 +27,30 @@ func (*ponger) Receive(ctx actor.Context) {
 }
 
 func main() {
-	remote.Register("Ponger", actor.PropsFromProducer(func() actor.Actor {
-		return &ponger{}
-	}))
+	// Setup actor system
+	system := actor.NewActorSystem()
+	messages.SetSystem(system)
 
+	// Prepare remote env that listens to 8080
+	remoteConfig := remote.Configure("127.0.0.1", 8080)
+
+	// Configure cluster on top of the above remote env
 	cp, err := consul.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.Start("cluster-example", "127.0.0.1:8080", cp)
+	clusterKind := cluster.NewKind(
+		"Ponger",
+		actor.PropsFromProducer(func() actor.Actor {
+			return &ponger{}
+		}))
+	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig, clusterKind)
+	c := cluster.New(system, clusterConfig)
+	messages.SetCluster(c)
+	c.Start()
 
+	// Run till signal comes
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, syscall.SIGINT)
-	signal.Notify(finish, syscall.SIGTERM)
+	signal.Notify(finish, os.Interrupt, os.Kill)
 	<-finish
 }

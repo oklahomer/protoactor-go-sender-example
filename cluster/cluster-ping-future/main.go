@@ -9,14 +9,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 )
 
 var cnt uint64 = 0
 
 type pingActor struct {
-	cnt uint
+	cluster *cluster.Cluster
+	cnt     uint
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
@@ -27,7 +27,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		grainPid, statusCode := cluster.Get("ponger-1", "Ponger")
+		grainPid, statusCode := p.cluster.Get("ponger-1", "Ponger")
 		if statusCode != remote.ResponseStatusCodeOK {
 			log.Printf("Get PID failed with StatusCode: %v", statusCode)
 			return
@@ -51,30 +51,42 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
+	// Setup actor system
+	system := actor.NewActorSystem()
+	messages.SetSystem(system)
+
+	// Prepare remote env that listens to 8081
+	remoteConfig := remote.Configure("127.0.0.1", 8081)
+
+	// Configure cluster on top of the above remote env
 	cp, err := consul.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.Start("cluster-example", "127.0.0.1:8081", cp)
+	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig)
+	c := cluster.New(system, clusterConfig)
+	messages.SetCluster(c)
+	c.Start()
 
-	rootCtx := actor.EmptyRootContext
-
+	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
-		return &pingActor{}
+		return &pingActor{
+			cluster: c,
+		}
 	})
-	pingPid := rootCtx.Spawn(pingProps)
+	pingPid := system.Root.Spawn(pingProps)
 
+	// Subscribe to signal to finish interaction
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, syscall.SIGINT)
-	signal.Notify(finish, syscall.SIGTERM)
+	signal.Notify(finish, os.Interrupt, os.Kill)
 
+	// Periodically send ping payload till signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ticker.C:
-			rootCtx.Send(pingPid, struct{}{})
+			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
 			log.Print("Finish")
