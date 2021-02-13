@@ -11,9 +11,11 @@ import (
 )
 
 func main() {
-	remote.Start("127.0.0.1:8080")
+	system := actor.NewActorSystem()
 
-	rootContext := actor.EmptyRootContext
+	config := remote.Configure("127.0.0.1", 8080)
+	remoting := remote.NewRemote(system, config)
+	remoting.Start()
 
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch msg := ctx.Message().(type) {
@@ -26,7 +28,7 @@ func main() {
 
 		}
 	})
-	pongPid, err := rootContext.SpawnNamed(pongProps, "pongActorID")
+	pongPid, err := system.Root.SpawnNamed(pongProps, "pongActorID")
 	if err != nil {
 		log.Fatalf("Failed to spawn actor: %s.", err.Error())
 	}
@@ -36,4 +38,6 @@ func main() {
 	signal.Notify(finish, syscall.SIGINT)
 	signal.Notify(finish, syscall.SIGTERM)
 	<-finish
+
+	remoting.Shutdown(false)
 }

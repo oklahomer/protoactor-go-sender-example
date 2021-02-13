@@ -41,9 +41,11 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	remote.Start("127.0.0.1:8081")
+	system := actor.NewActorSystem()
 
-	rootContext := actor.EmptyRootContext
+	config := remote.Configure("127.0.0.1", 8081)
+	remoting := remote.NewRemote(system, config)
+	remoting.Start()
 
 	remotePong := actor.NewPID("127.0.0.1:8080", "pongActorID")
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
@@ -51,7 +53,7 @@ func main() {
 			pongPid: remotePong,
 		}
 	})
-	pingPid := rootContext.Spawn(pingProps)
+	pingPid := system.Root.Spawn(pingProps)
 
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, syscall.SIGINT)
@@ -63,10 +65,11 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			rootContext.Send(pingPid, struct{}{})
+			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
 			log.Print("Finish")
+			remoting.Shutdown(false)
 			return
 
 		}

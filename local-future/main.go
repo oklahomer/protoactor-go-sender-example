@@ -42,7 +42,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	rootContext := actor.EmptyRootContext
+	system := actor.NewActorSystem()
 
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
@@ -54,14 +54,14 @@ func main() {
 
 		}
 	})
-	pongPid := rootContext.Spawn(pongProps)
+	pongPid := system.Root.Spawn(pongProps)
 
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: pongPid,
 		}
 	})
-	pingPid := rootContext.Spawn(pingProps)
+	pingPid := system.Root.Spawn(pingProps)
 
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, syscall.SIGINT)
@@ -73,7 +73,7 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			rootContext.Send(pingPid, struct{}{})
+			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
 			log.Print("Finish")
