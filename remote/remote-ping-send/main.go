@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -41,12 +40,15 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
+	// Setup actor system
 	system := actor.NewActorSystem()
 
+	// Setup remote env that listens to 8081
 	config := remote.Configure("127.0.0.1", 8081)
 	remoting := remote.NewRemote(system, config)
 	remoting.Start()
 
+	// Declare remote pong actor's address, and let ping actor send ping payload to it
 	remotePong := actor.NewPID("127.0.0.1:8080", "pongActorID")
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
@@ -55,13 +57,13 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
+	// Subscribe to signal to finish interaction
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, syscall.SIGINT)
-	signal.Notify(finish, syscall.SIGTERM)
+	signal.Notify(finish, os.Interrupt, os.Kill)
 
+	// Periodically send ping payload till signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ticker.C:

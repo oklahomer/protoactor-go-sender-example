@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -32,8 +31,10 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
+	// Setup actor system
 	system := actor.NewActorSystem()
 
+	// Run pong actor that receives ping payload and send back pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
@@ -46,6 +47,7 @@ func main() {
 	})
 	pongPid := system.Root.Spawn(pongProps)
 
+	// Run ping actor that receives an arbitrary payload from outside of actor system, and then send ping payload to pong actor
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: pongPid,
@@ -53,13 +55,13 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
+	// Subscribe to signal to finish interaction
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, os.Interrupt)
-	signal.Notify(finish, syscall.SIGTERM)
+	signal.Notify(finish, os.Interrupt, os.Kill)
 
+	// Periodically send ping payload till signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ticker.C:
