@@ -15,7 +15,8 @@ import (
 var cnt uint64 = 0
 
 type pingActor struct {
-	cnt uint
+	cluster *cluster.Cluster
+	cnt     uint
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
@@ -26,7 +27,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		grain := messages.GetPongerGrain("ponger-1")
+		grain := messages.GetPongerGrainClient(p.cluster, "ponger-1")
 		pong, err := grain.SendPing(ping)
 		if err != nil {
 			log.Print(err.Error())
@@ -46,7 +47,6 @@ func (p *pingActor) Receive(ctx actor.Context) {
 func main() {
 	// Setup actor system
 	system := actor.NewActorSystem()
-	messages.SetSystem(system)
 
 	// Prepare remote env that listens to 8081
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
@@ -58,12 +58,13 @@ func main() {
 	}
 	clusterConfig := cluster.Configure("cluster-grpc-example", cp, remoteConfig)
 	c := cluster.New(system, clusterConfig)
-	messages.SetCluster(c)
 	c.Start()
 
 	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
-		return &pingActor{}
+		return &pingActor{
+			cluster: c,
+		}
 	})
 	pingPid := system.Root.Spawn(pingProps)
 

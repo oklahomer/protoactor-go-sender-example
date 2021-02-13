@@ -1,6 +1,7 @@
 # Setup Consul
+For the latest version of Protoactor-go, specify [gograinv2_out](https://github.com/AsynkronIT/protoactor-go/blob/dev/protobuf/protoc-gen-gograinv2/Makefile) instead of `gograin_out` to generate files.
 ```
-protoc --gograin_out=. ./messages/protos.proto
+protoc --gograinv2_out=. ./messages/protos.proto
 protoc --gogoslick_out=. ./messages/protos.proto
 
 docker build --rm -t protoactor-go-sample:latest consul

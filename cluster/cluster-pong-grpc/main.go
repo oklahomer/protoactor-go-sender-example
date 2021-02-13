@@ -20,6 +20,9 @@ var _ messages.Ponger = (*ponger)(nil)
 func (*ponger) Terminate() {
 }
 
+func (*ponger) ReceiveDefault(ctx actor.Context) {
+}
+
 func (*ponger) SendPing(ping *messages.Ping, ctx cluster.GrainContext) (*messages.Pong, error) {
 	// The sender process is not a sending actor, but a future process
 	log.Printf("Sender: %+v", ctx.Sender())
@@ -33,7 +36,6 @@ func (*ponger) SendPing(ping *messages.Ping, ctx cluster.GrainContext) (*message
 func main() {
 	// Setup actor system
 	system := actor.NewActorSystem()
-	messages.SetSystem(system)
 
 	messages.PongerFactory(func() messages.Ponger {
 		return &ponger{}
@@ -54,7 +56,6 @@ func main() {
 		}))
 	clusterConfig := cluster.Configure("cluster-grpc-example", cp, remoteConfig, clusterKind)
 	c := cluster.New(system, clusterConfig)
-	messages.SetCluster(c)
 	c.Start()
 
 	// Run till signal comes

@@ -29,7 +29,6 @@ func (*ponger) Receive(ctx actor.Context) {
 func main() {
 	// Setup actor system
 	system := actor.NewActorSystem()
-	messages.SetSystem(system)
 
 	// Prepare remote env that listens to 8080
 	remoteConfig := remote.Configure("127.0.0.1", 8080)
@@ -46,7 +45,6 @@ func main() {
 		}))
 	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig, clusterKind)
 	c := cluster.New(system, clusterConfig)
-	messages.SetCluster(c)
 	c.Start()
 
 	// Run till signal comes
