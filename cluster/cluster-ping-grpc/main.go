@@ -4,18 +4,19 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/consul"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/oklahomer/protoactor-go-sender-example/cluster/messages"
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 )
 
 var cnt uint64 = 0
 
 type pingActor struct {
-	cnt uint
+	cluster *cluster.Cluster
+	cnt     uint
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
@@ -26,7 +27,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		grain := messages.GetPongerGrain("ponger-1")
+		grain := messages.GetPongerGrainClient(p.cluster, "ponger-1")
 		pong, err := grain.SendPing(ping)
 		if err != nil {
 			log.Print(err.Error())
@@ -44,30 +45,40 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
+	// Setup actor system
+	system := actor.NewActorSystem()
+
+	// Prepare remote env that listens to 8081
+	remoteConfig := remote.Configure("127.0.0.1", 8081)
+
+	// Configure cluster on top of the above remote env
 	cp, err := consul.New()
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.Start("cluster-grpc-example", "127.0.0.1:8081", cp)
+	clusterConfig := cluster.Configure("cluster-grpc-example", cp, remoteConfig)
+	c := cluster.New(system, clusterConfig)
+	c.Start()
 
-	rootContext := actor.EmptyRootContext
-
+	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
-		return &pingActor{}
+		return &pingActor{
+			cluster: c,
+		}
 	})
-	pingPid := rootContext.Spawn(pingProps)
+	pingPid := system.Root.Spawn(pingProps)
 
+	// Subscribe to signal to finish interaction
 	finish := make(chan os.Signal, 1)
-	signal.Notify(finish, os.Interrupt)
-	signal.Notify(finish, syscall.SIGTERM)
+	signal.Notify(finish, os.Interrupt, os.Kill)
 
+	// Periodically send ping payload till signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ticker.C:
-			rootContext.Send(pingPid, struct{}{})
+			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
 			log.Print("Finish")
