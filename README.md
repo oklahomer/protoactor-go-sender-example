@@ -13,20 +13,27 @@ For local message passing, see below directory:
 - rmeote/remote-pong ... A process that returns pong message to sender.
 - remote/remote-ping-send ... A process that sends message to pong actor by Send(). The recipient cannot refer to the sender actor.
 - remote/remote-ping-request ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
-- remote/remote-poing-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
+- remote/remote-ping-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
 # Cluster Grain
 - cluster/messages ... Contain Protobuf serializable message structures and generated actor.Actor implementation for gRPC based communication.
 
 ## Cluster Grain usage with remote communication
-- cluster/cluster-pong-remote ... A process that returns pong message to the sender based on remote actor implementation.
-- cluster/cluster-ping-send ... A process that sends message to pong actor by Send(). The recipient cannot refer to the sender actor.
-- cluster/cluster-ping-request ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
-- cluster/cluster-ping-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
+Below implementation uses Consul Cluster Provider for service discovery
+- cluster-consul/cluster-pong ... A process that returns pong message to the sender based on remote actor implementation.
+- cluster-consul/cluster-ping-send ... A process that sends message to pong actor by Send(). The recipient cannot refer to the sender actor.
+- cluster-consul/cluster-ping-request ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
+- cluster-consul/cluster-ping-future ... A process that sends message to pong actor by RequestFuture(). Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
 ## Cluster Grain usage with gRPC based communication
-- cluster/cluster-pong-grpc ... A process that returns pong message to the sender via gRPC service.
-- cluster/cluster-ping-grpc ... A process that sends message to pong actor over gRPC based service.
+Below implementation uses Consul Cluster Provider for service discovery
+- cluster-consul/cluster-pong-grpc ... A process that returns pong message to the sender via gRPC service.
+- cluster-consul/cluster-ping-grpc ... A process that sends message to pong actor over gRPC based service.
+
+## Cluster with Automanaged Cluster Provider
+Below implementation uses Automanaged Cluster Provider for service discovery
+- cluster-automanaged/cluster-pong ... A process that returns pong message to the sender based on remote actor implementation.
+- cluster-automanaged/cluster-ping-future ... A process that sends message to pong actor by Request(). The recipient actor can refer to the sender actor.
 
 # References
 - [[Golang] Protoactor-go 101: Introduction to golang's actor model implementation](https://blog.oklahome.net/2018/07/protoactor-go-introduction.html)

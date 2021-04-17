@@ -9,8 +9,8 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
 	logmod "github.com/AsynkronIT/protoactor-go/log"
+	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -50,7 +50,6 @@ type Ponger interface {
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
 	SendPing(*Ping, cluster.GrainContext) (*Pong, error)
-	
 }
 
 // PongerGrainClient holds the base data for the PongerGrain
@@ -87,7 +86,6 @@ func (g *PongerGrainClient) SendPing(r *Ping, opts ...*cluster.GrainCallOptions)
 		return nil, errors.New("unknown response")
 	}
 }
-
 
 // PongerActor represents the actor structure
 type PongerActor struct {
@@ -139,7 +137,7 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-		
+
 		}
 	default:
 		a.inner.ReceiveDefault(ctx)
