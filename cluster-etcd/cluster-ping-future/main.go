@@ -68,7 +68,7 @@ func main() {
 	}
 	clusterConfig := cluster.Configure("cluster-example", clusterProvider, remoteConfig)
 	c := cluster.New(system, clusterConfig)
-	c.Start()
+	c.StartClient()
 
 	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
