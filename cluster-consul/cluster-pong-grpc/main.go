@@ -21,6 +21,15 @@ func (*ponger) Terminate() {
 }
 
 func (*ponger) ReceiveDefault(ctx actor.Context) {
+	switch msg := ctx.Message().(type) {
+	case *messages.Ping:
+		pong := &messages.Pong{Cnt: msg.Cnt}
+		log.Print("Received ping message")
+		ctx.Respond(pong)
+
+	default:
+
+	}
 }
 
 func (*ponger) SendPing(ping *messages.Ping, ctx cluster.GrainContext) (*messages.Pong, error) {
@@ -54,7 +63,7 @@ func main() {
 		actor.PropsFromProducer(func() actor.Actor {
 			return &messages.PongerActor{}
 		}))
-	clusterConfig := cluster.Configure("cluster-grpc-example", cp, remoteConfig, clusterKind)
+	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig, clusterKind)
 	c := cluster.New(system, clusterConfig)
 	c.Start()
 

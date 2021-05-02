@@ -56,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clusterConfig := cluster.Configure("cluster-grpc-example", cp, remoteConfig)
+	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig)
 	c := cluster.New(system, clusterConfig)
 	c.StartClient()
 
