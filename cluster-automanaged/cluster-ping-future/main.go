@@ -5,10 +5,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/oklahomer/protoactor-go-sender-example/cluster/messages"
 	"log"
 	"os"
 	"os/signal"
+	"protoactor-go-sender-example/cluster/messages"
 	"time"
 )
 
@@ -58,7 +58,7 @@ func main() {
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
 
 	// Configure cluster on top of the above remote env
-	clusterProvider := automanaged.NewWithConfig(1*time.Second, 6330, "localhost:6330", "localhost:6331")
+	clusterProvider := automanaged.NewWithConfig(1*time.Second, 6330, "localhost:6331")
 	clusterConfig := cluster.Configure("cluster-example", clusterProvider, remoteConfig)
 	c := cluster.New(system, clusterConfig)
 	c.StartClient()

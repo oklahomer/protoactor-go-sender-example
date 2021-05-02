@@ -6,10 +6,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
 	"github.com/AsynkronIT/protoactor-go/remote"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/oklahomer/protoactor-go-sender-example/cluster/messages"
 	"log"
 	"os"
 	"os/signal"
+	"protoactor-go-sender-example/cluster/messages"
 	"time"
 )
 

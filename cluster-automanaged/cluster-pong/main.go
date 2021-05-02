@@ -5,10 +5,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/cluster"
 	"github.com/AsynkronIT/protoactor-go/cluster/automanaged"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/oklahomer/protoactor-go-sender-example/cluster/messages"
 	"log"
 	"os"
 	"os/signal"
+	"protoactor-go-sender-example/cluster/messages"
 	"time"
 )
 
@@ -40,7 +40,7 @@ func main() {
 		actor.PropsFromProducer(func() actor.Actor {
 			return &ponger{}
 		}))
-	cp := automanaged.NewWithConfig(1*time.Second, 6331, "localhost:6330", "localhost:6331")
+	cp := automanaged.NewWithConfig(1*time.Second, 6331, "localhost:6331")
 	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig, clusterKind)
 	c := cluster.New(system, clusterConfig)
 	c.Start()

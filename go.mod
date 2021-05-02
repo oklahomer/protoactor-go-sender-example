@@ -1,4 +1,4 @@
-module github.com/oklahomer/protoactor-go-sender-example
+module protoactor-go-sender-example
 
 go 1.12
 

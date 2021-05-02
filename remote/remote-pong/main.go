@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/oklahomer/protoactor-go-sender-example/remote/messages"
 	"log"
 	"os"
 	"os/signal"
+	"protoactor-go-sender-example/remote/messages"
 )
 
 func main() {
