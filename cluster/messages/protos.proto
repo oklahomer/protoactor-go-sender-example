@@ -1,14 +1,14 @@
 syntax = "proto3";
 package messages;
 
-message Ping {
+message PingMessage {
     uint64 cnt = 1;
 }
 
-message Pong {
+message PongMessage {
     uint64 cnt = 1;
 }
 
 service Ponger {
-    rpc SendPing(Ping) returns (Pong) {}
+    rpc Ping(PingMessage) returns (PongMessage) {}
 }

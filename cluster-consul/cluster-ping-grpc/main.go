@@ -23,19 +23,20 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
 		cnt += 1
-		ping := &messages.Ping{
+		ping := &messages.PingMessage{
 			Cnt: cnt,
 		}
 
-		grain := messages.GetPongerGrainClient(p.cluster, "ponger-1")
-		pong, err := grain.SendPing(ping)
+		client := messages.GetPongerGrainClient(p.cluster, "ponger-1")
+		option := cluster.NewGrainCallOptions(p.cluster).WithRetry(3)
+		pong, err := client.Ping(ping, option)
 		if err != nil {
 			log.Print(err.Error())
 			return
 		}
 		log.Printf("Received %v", pong)
 
-	case *messages.Pong:
+	case *messages.PongMessage:
 		// Never comes here.
 		// When the pong grain responds to the sender's gRPC call,
 		// the sender is not a ping actor but a future process.

@@ -23,7 +23,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
 		cnt += 1
-		ping := &messages.Ping{
+		ping := &messages.PingMessage{
 			Cnt: cnt,
 		}
 
@@ -34,7 +34,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		}
 		ctx.Request(grainPid, ping)
 
-	case *messages.Pong:
+	case *messages.PongMessage:
 		log.Print("Received pong message")
 
 	}

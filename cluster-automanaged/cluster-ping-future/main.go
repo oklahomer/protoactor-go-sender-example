@@ -23,7 +23,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
 		cnt += 1
-		ping := &messages.Ping{
+		ping := &messages.PingMessage{
 			Cnt: cnt,
 		}
 
@@ -41,7 +41,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		}
 		log.Printf("Received %v", result)
 
-	case *messages.Pong:
+	case *messages.PongMessage:
 		// Never comes here.
 		// When the pong actor responds to the sender,
 		// the sender is not a ping actor but a future process.

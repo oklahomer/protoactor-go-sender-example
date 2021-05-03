@@ -18,8 +18,8 @@ type ponger struct {
 
 func (*ponger) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *messages.Ping:
-		pong := &messages.Pong{Cnt: msg.Cnt}
+	case *messages.PingMessage:
+		pong := &messages.PongMessage{Cnt: msg.Cnt}
 		log.Print("Received ping message")
 		ctx.Respond(pong)
 

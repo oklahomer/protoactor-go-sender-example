@@ -23,7 +23,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
 		cnt += 1
-		ping := &messages.Ping{
+		ping := &messages.PingMessage{
 			Cnt: cnt,
 		}
 
@@ -38,12 +38,12 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		//
 		ctx.Send(grainPid, ping)
 
-	case *messages.Pong:
+	case *messages.PongMessage:
 		// Never comes here.
 		// The recipient can not refer to the sender.
 		// Instead the cluster grain leaves logs as below:
 		// YYYY/MM/DD hh:mm:ss Received ping message
-		// YYYY/MM/DD hh:mm:ss [ACTOR] [DeadLetter] pid="nil" message="&Pong{Cnt:2,}" sender="nil"
+		// YYYY/MM/DD hh:mm:ss [ACTOR] [DeadLetter] pid="nil" message="&PongMessage{Cnt:2,}" sender="nil"
 		//
 		log.Print("Received pong message")
 

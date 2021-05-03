@@ -9,8 +9,8 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/AsynkronIT/protoactor-go/cluster"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/AsynkronIT/protoactor-go/remote"
+	logmod "github.com/AsynkronIT/protoactor-go/log"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -49,7 +49,8 @@ type Ponger interface {
 	Init(id string)
 	Terminate()
 	ReceiveDefault(ctx actor.Context)
-	SendPing(*Ping, cluster.GrainContext) (*Pong, error)
+	Ping(*PingMessage, cluster.GrainContext) (*PongMessage, error)
+	
 }
 
 // PongerGrainClient holds the base data for the PongerGrain
@@ -58,8 +59,8 @@ type PongerGrainClient struct {
 	cluster *cluster.Cluster
 }
 
-// SendPing requests the execution on to the cluster with CallOptions
-func (g *PongerGrainClient) SendPing(r *Ping, opts ...*cluster.GrainCallOptions) (*Pong, error) {
+// Ping requests the execution on to the cluster with CallOptions
+func (g *PongerGrainClient) Ping(r *PingMessage, opts ...*cluster.GrainCallOptions) (*PongMessage, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -71,7 +72,7 @@ func (g *PongerGrainClient) SendPing(r *Ping, opts ...*cluster.GrainCallOptions)
 	}
 	switch msg := resp.(type) {
 	case *cluster.GrainResponse:
-		result := &Pong{}
+		result := &PongMessage{}
 		err = proto.Unmarshal(msg.MessageData, result)
 		if err != nil {
 			return nil, err
@@ -86,6 +87,7 @@ func (g *PongerGrainClient) SendPing(r *Ping, opts ...*cluster.GrainCallOptions)
 		return nil, errors.New("unknown response")
 	}
 }
+
 
 // PongerActor represents the actor structure
 type PongerActor struct {
@@ -114,15 +116,15 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 	case *cluster.GrainRequest:
 		switch msg.MethodIndex {
 		case 0:
-			req := &Ping{}
+			req := &PingMessage{}
 			err := proto.Unmarshal(msg.MessageData, req)
 			if err != nil {
-				plog.Error("SendPing(Ping) proto.Unmarshal failed.", logmod.Error(err))
+				plog.Error("Ping(PingMessage) proto.Unmarshal failed.", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.SendPing(req, ctx)
+			r0, err := a.inner.Ping(req, ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -130,14 +132,14 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 			}
 			bytes, err := proto.Marshal(r0)
 			if err != nil {
-				plog.Error("SendPing(Ping) proto.Marshal failed", logmod.Error(err))
+				plog.Error("Ping(PingMessage) proto.Marshal failed", logmod.Error(err))
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
 				return
 			}
 			resp := &cluster.GrainResponse{MessageData: bytes}
 			ctx.Respond(resp)
-
+		
 		}
 	default:
 		a.inner.ReceiveDefault(ctx)
