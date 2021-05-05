@@ -53,9 +53,13 @@ func main() {
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
 
 	// Configure cluster on top of the above remote env
+	// This node uses port 6330 for cluster provider, and add ponger node -- localhost:6331 -- as member.
+	// With automanaged implementation, one must list up all known nodes at first place to ping each other.
+	// Note that this node itself is not registered as a member node because this only works as a client.
 	cp := automanaged.NewWithConfig(1*time.Second, 6330, "localhost:6331")
 	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig)
 	c := cluster.New(system, clusterConfig)
+	// Start as a client, not as a cluster member.
 	c.StartClient()
 
 	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain

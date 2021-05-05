@@ -73,6 +73,7 @@ func main() {
 	remoteConfig := remote.Configure("127.0.0.1", 8080)
 
 	// Configure cluster provider to work as a cluster member.
+	// This node uses port 6331 for cluster provider, and register itself -- localhost:6331" -- as cluster member.
 	cp := automanaged.NewWithConfig(1*time.Second, 6331, "localhost:6331")
 
 	// Register an actor constructor for the Ponger kind.
