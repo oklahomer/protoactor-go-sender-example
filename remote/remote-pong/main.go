@@ -10,13 +10,14 @@ import (
 )
 
 func main() {
-	// Setup actor system
+	// Set up the actor system
 	system := actor.NewActorSystem()
 
-	// Setup remote env that listens to 8080
+	// Set up a remote env that listens to 8080
 	config := remote.Configure("127.0.0.1", 8080)
-	remoting := remote.NewRemote(system, config)
-	remoting.Start()
+	remoter := remote.NewRemote(system, config)
+	remoter.Start()
+	defer remoter.Shutdown(false)
 
 	// Run pong actor that receives ping payload, and then send back pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
@@ -36,10 +37,8 @@ func main() {
 	}
 	log.Printf("Actor is running. Address: %s. ID: %s.", pongPid.Address, pongPid.Id)
 
-	// Run till signal comes
+	// Run till a signal comes
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 	<-finish
-
-	remoting.Shutdown(false)
 }

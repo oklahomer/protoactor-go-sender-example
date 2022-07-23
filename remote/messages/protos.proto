@@ -1,5 +1,6 @@
 syntax = "proto3";
 package messages;
+option go_package = "protoactor-go-sender-example/remote/messages";
 
 message Ping {
     uint64 cnt = 1;
