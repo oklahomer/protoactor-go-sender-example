@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"log"
 	"os"
 	"os/signal"

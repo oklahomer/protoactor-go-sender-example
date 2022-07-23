@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/coreos/etcd/clientv3"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
+	"github.com/asynkron/protoactor-go/remote"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"log"
 	"os"
 	"os/signal"
