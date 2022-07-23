@@ -21,10 +21,9 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		// Below do not set ctx.Self() as sender,
-		// and hence the recipient has no knowledge of the sender
+		// Below do not set ctx.Self() as a sender, and hence the recipient has no knowledge of the sender actor
 		// even though the message is sent from one actor to another.
-		//
+		// Use ctx.Request() or ctx.RequestFuture() when expecting a response.
 		ctx.Send(p.pongPid, &ping{})
 
 	case *pong:
@@ -36,14 +35,16 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up actor system
 	system := actor.NewActorSystem()
 
-	// Run pong actor that receives ping payload and send back pong payload
+	// Run a pong actor that receives a ping payload and sends back a pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
 			log.Print("Received ping message")
+
+			// This call fails and ends up with a dead letter because the sender did not set the sender information.
 			ctx.Respond(&pong{})
 
 		default:
@@ -52,7 +53,7 @@ func main() {
 	})
 	pongPid := system.Root.Spawn(pongProps)
 
-	// Run ping actor that receives an arbitrary payload from outside of actor system, and then send ping payload to pong actor
+	// Run a ping actor that receives an arbitrary payload from outside the actor system, and then sends a ping payload to the pong actor
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: pongPid,
@@ -60,11 +61,11 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
-	// Subscribe to signal to finish interaction
+	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 
-	// Periodically send ping payload till signal comes
+	// Periodically send a ping payload till a signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {

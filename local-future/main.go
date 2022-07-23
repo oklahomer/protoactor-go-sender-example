@@ -21,8 +21,11 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		// Below both work.
-		//
+		// Unlike ctx.Request(), this sends a request and waits for a response,
+		// expecting the receiving actor to respond with ctx.Respond().
+		// The call to ctx.RequestFuture() itself is not blocking because its returning value is Future.
+		// However, Future.Result() blocks until the receiving actor responds
+		// or the timeout interval specified by the call to ctx.RequestFuture() passes.
 		future := ctx.RequestFuture(p.pongPid, &ping{}, time.Second)
 		result, err := future.Result()
 		if err != nil {
@@ -41,10 +44,10 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up the actor system
 	system := actor.NewActorSystem()
 
-	// Run pong actor that receives ping payload and send back pong payload
+	// Run a pong actor that receives a ping payload and sends back a pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
@@ -57,7 +60,7 @@ func main() {
 	})
 	pongPid := system.Root.Spawn(pongProps)
 
-	// Run ping actor that receives an arbitrary payload from outside of actor system, and then send ping payload to pong actor
+	// Run a ping actor that receives an arbitrary payload from outside the actor system, and then sends a ping payload to the pong actor
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: pongPid,
@@ -65,11 +68,11 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
-	// Subscribe to signal to finish interaction
+	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 
-	// Periodically send ping payload till signal comes
+	// Periodically send a ping payload till a signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {

@@ -3,10 +3,10 @@ This repository contains supplemental examples for my blog article, [[Golang] Pr
 ![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/master/docs/components.png)
 
 # Local
-For local message passing, see below directory:
-- local-send ... Use Send() for local message passing. The recipient actor cannot refer to the sender actor.
-- local-request ... Use Request() for local message passing. The recipient actor can refer to the sender actor.
-- local-future ... Use RequestFuture() for local message passing. Context.Sender() does not return the PID of sender actor but that of actor.Future.
+For local message passing, see the below directories:
+- [local-send](https://github.com/oklahomer/protoactor-go-sender-example/blob/master/local-send/main.go) ... Use Send() for local message passing. The recipient actor cannot refer to the sender actor.
+- [local-request](https://github.com/oklahomer/protoactor-go-sender-example/blob/master/local-request/main.go) ... Use Request() for local message passing. The recipient actor can refer to the sender actor.
+- [local-future](https://github.com/oklahomer/protoactor-go-sender-example/tree/master/local-future) ... Use RequestFuture() for local message passing. Context.Sender() does not return the PID of sender actor but that of actor.Future.
 
 # Remote
 - remote/messages ... Contain Protobuf serializable message structures.
@@ -41,6 +41,7 @@ Below implementation uses Automanaged Cluster Provider for service discovery
 - [[Golang] protoactor-go 101: How actor.Future works to synchronize concurrent task execution](https://blog.oklahome.net/2018/11/protoactor-go-how-future-works.html)
 - [[Golang] protoactor-go 201: How middleware works to intercept incoming and outgoing messages](https://blog.oklahome.net/2018/11/protoactor-go-middleware.html)
 - [[Golang] protoactor-go 201: Use plugins to add behaviors to an actor](https://blog.oklahome.net/2018/12/protoactor-go-use-plugin-to-add-behavior.html)
+- [[Golang] protoactor-go 301: How proto.actor's clustering works to achieve higher availability](https://blog.oklahome.net/2021/05/protoactor-clustering.html)
 
 # Other Example Codes
 - [oklahomer/protoactor-go-future-example](https://github.com/oklahomer/protoactor-go-future-example)
