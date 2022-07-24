@@ -1,0 +1,14 @@
+version: "3"
+services:
+  etcd:
+    build:
+      context: ./cluster-etcd/etcd
+      dockerfile: Dockerfile
+    ports:
+      - "2379:2379"
+  consul:
+    build:
+      context: ./cluster-consul/consul
+      dockerfile: Dockerfile
+    ports:
+      - "8500:8500"
