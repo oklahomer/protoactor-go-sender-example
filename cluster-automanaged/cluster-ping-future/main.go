@@ -29,7 +29,6 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		}
 
 		grainPid := p.cluster.Get("ponger-1", "Ponger")
-
 		future := ctx.RequestFuture(grainPid, ping, time.Second)
 		result, err := future.Result()
 		if err != nil {

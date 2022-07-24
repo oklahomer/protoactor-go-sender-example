@@ -46,10 +46,10 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up actor system
 	system := actor.NewActorSystem()
 
-	// Prepare remote env that listens to 8081
+	// Prepare a remote env that listens to 8081
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
 
 	// Configure a cluster on top of the above remote env.
@@ -65,7 +65,7 @@ func main() {
 	c.StartClient() // Configure as a client
 	defer c.Shutdown(false)
 
-	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
+	// Start a ping actor that periodically send a "ping" payload to the "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			cluster: c,

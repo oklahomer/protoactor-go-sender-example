@@ -4,6 +4,7 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
 	"log"
 	"os"
@@ -28,8 +29,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		}
 
 		client := messages.GetPongerGrainClient(p.cluster, "ponger-1")
-		option := cluster.NewGrainCallOptions(p.cluster).WithRetry(3)
-		pong, err := client.Ping(ping, option)
+		pong, err := client.Ping(ping, cluster.WithTimeout(time.Second), cluster.WithRetry(5))
 		if err != nil {
 			log.Print(err.Error())
 			return
@@ -46,7 +46,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up actor system
 	system := actor.NewActorSystem()
 
 	// Prepare remote env that listens to 8081
@@ -57,11 +57,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig)
+	lookup := disthash.New()
+	clusterConfig := cluster.Configure("cluster-example", cp, lookup, remoteConfig)
 	c := cluster.New(system, clusterConfig)
-	c.StartClient()
 
-	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
+	// Manage the cluster client's lifecycle
+	c.StartClient() // Configure as a client
+	defer c.Shutdown(false)
+
+	// Start a ping actor that periodically send a "ping" payload to the "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			cluster: c,
@@ -69,11 +73,11 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
-	// Subscribe to signal to finish interaction
+	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 
-	// Periodically send ping payload till signal comes
+	// Periodically send a ping payload till a signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
