@@ -1,6 +1,6 @@
 This repository contains supplemental examples for my blog article, [[Golang] Protoactor-go 101: How actors communicate with each other](https://blog.oklahome.net/2018/09/protoactor-go-messaging-protocol.html) , to cover all message passing methods for all kinds of actors provided by protoactor-go.
 
-![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/master/docs/components.png)
+![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/main/docs/components.png)
 
 # Local
 For local message passing, see the below directories:

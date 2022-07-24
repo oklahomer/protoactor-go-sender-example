@@ -1,6 +1,6 @@
 # Setup
 
-![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/master/docs/consul.png)
+![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/main/docs/consul.png)
 
 For the latest version of Protoactor-go, specify [gograinv2_out](https://github.com/asynkron/protoactor-go/blob/dev/protobuf/protoc-gen-gograinv2/Makefile) instead of `gograin_out` to generate files.
 ```

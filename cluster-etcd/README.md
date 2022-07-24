@@ -1,6 +1,6 @@
 # Setup
 
-![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/master/docs/etcd.png)
+![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/main/docs/etcd.png)
 
 ```
 docker build --rm -t protoactor-go-sample-etcd:latest consul
