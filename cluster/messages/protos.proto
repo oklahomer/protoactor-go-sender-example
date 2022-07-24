@@ -1,5 +1,6 @@
 syntax = "proto3";
 package messages;
+option go_package = "protoactor-go-sender-example/cluster/messages";
 
 message PingMessage {
     uint64 cnt = 1;

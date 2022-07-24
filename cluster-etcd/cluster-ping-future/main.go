@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/coreos/etcd/clientv3"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/asynkron/protoactor-go/remote"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"log"
 	"os"
 	"os/signal"
@@ -28,12 +29,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		grainPid, statusCode := p.cluster.Get("ponger-1", "Ponger")
-		if statusCode != remote.ResponseStatusCodeOK {
-			log.Printf("Get PID failed with StatusCode: %v", statusCode)
-			return
-		}
-
+		grainPid := p.cluster.Get("ponger-1", "Ponger")
 		future := ctx.RequestFuture(grainPid, ping, time.Second)
 		result, err := future.Result()
 		if err != nil {
@@ -44,21 +40,20 @@ func (p *pingActor) Receive(ctx actor.Context) {
 
 	case *messages.PongMessage:
 		// Never comes here.
-		// When the pong actor responds to the sender,
-		// the sender is not a ping actor but a future process.
+		// When the pong actor responds to the sender, the sender is not a ping actor but a future process.
 		log.Print("Received pong message")
 
 	}
 }
 
 func main() {
-	// Setup actor system
+	// Set up actor system
 	system := actor.NewActorSystem()
 
-	// Prepare remote env that listens to 8081
+	// Prepare a remote env that listens to 8081
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
 
-	// Configure cluster on top of the above remote env
+	// Configure a cluster on top of the above remote env
 	clusterProvider, err := etcd.NewWithConfig("/protoactor", clientv3.Config{
 		Endpoints:   []string{"127.0.0.1:2379"},
 		DialTimeout: time.Second * 5,
@@ -66,11 +61,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	clusterConfig := cluster.Configure("cluster-example", clusterProvider, remoteConfig)
+	lookup := disthash.New()
+	clusterConfig := cluster.Configure("cluster-example", clusterProvider, lookup, remoteConfig)
 	c := cluster.New(system, clusterConfig)
-	c.StartClient()
 
-	// Start ping actor that periodically send "ping" payload to "Ponger" cluster grain
+	// Manage the cluster client's lifecycle
+	c.StartClient() // Configure as a client
+	defer c.Shutdown(false)
+
+	// Start a ping actor that periodically sends a "ping" payload to the "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			cluster: c,
@@ -78,11 +77,11 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
-	// Subscribe to signal to finish interaction
+	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 
-	// Periodically send ping payload till signal comes
+	// Periodically send a ping payload till a signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {

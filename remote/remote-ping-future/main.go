@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/remote"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 	"log"
 	"os"
 	"os/signal"
@@ -25,9 +25,8 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		// Below both work.
-		//
-		//future := p.pongPid.RequestFuture(ping, time.Second)
+		// Besides the fact that a payload is serialized and is sent to a remove environment,
+		// the usage of ctx.RequestFuture is still the same as that of local messaging.
 		future := ctx.RequestFuture(p.pongPid, ping, time.Second)
 		result, err := future.Result()
 		if err != nil {
@@ -46,15 +45,18 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up the actor system
 	system := actor.NewActorSystem()
 
-	// Setup remote env that listens to 8081
-	config := remote.Configure("127.0.0.1", 8081)
-	remoting := remote.NewRemote(system, config)
-	remoting.Start()
+	// Set up a remote env that listens to a randomly chosen port.
+	// To specify a port number, pass a desired port number as a second argument of remote.Configure instead of 0.
+	// Note that a ponger implementation at ../remote-pong/main.go specifies its actor system's port as 8080 so the pinger can refer to it.
+	config := remote.Configure("127.0.0.1", 0)
+	remoter := remote.NewRemote(system, config)
+	remoter.Start()
+	defer remoter.Shutdown(false)
 
-	// Declare remote pong actor's address, and let ping actor send ping payload to it
+	// Declare the remote pong actor's address, and let the ping actor send a ping payload to it
 	remotePong := actor.NewPID("127.0.0.1:8080", "pongActorID")
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
@@ -63,11 +65,11 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
-	// Subscribe to signal to finish interaction
+	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 
-	// Periodically send ping payload till signal comes
+	// Periodically send a ping payload till signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {

@@ -2,7 +2,7 @@
 
 ![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/master/docs/consul.png)
 
-For the latest version of Protoactor-go, specify [gograinv2_out](https://github.com/AsynkronIT/protoactor-go/blob/dev/protobuf/protoc-gen-gograinv2/Makefile) instead of `gograin_out` to generate files.
+For the latest version of Protoactor-go, specify [gograinv2_out](https://github.com/asynkron/protoactor-go/blob/dev/protobuf/protoc-gen-gograinv2/Makefile) instead of `gograin_out` to generate files.
 ```
 protoc --gograinv2_out=. ./messages/protos.proto
 protoc --gogoslick_out=. ./messages/protos.proto

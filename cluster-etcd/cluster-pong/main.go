@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/cluster/etcd"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	"github.com/coreos/etcd/clientv3"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	"github.com/asynkron/protoactor-go/cluster/clusterproviders/etcd"
+	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
+	"github.com/asynkron/protoactor-go/remote"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"log"
 	"os"
 	"os/signal"
@@ -29,13 +30,13 @@ func (*ponger) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up actor system
 	system := actor.NewActorSystem()
 
-	// Prepare remote env that listens to 8080
+	// Prepare a remote env that listens to 8080
 	remoteConfig := remote.Configure("127.0.0.1", 8080)
 
-	// Configure cluster on top of the above remote env
+	// Configure a cluster on top of the above remote env
 	clusterKind := cluster.NewKind(
 		"Ponger",
 		actor.PropsFromProducer(func() actor.Actor {
@@ -49,11 +50,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	clusterConfig := cluster.Configure("cluster-example", cp, remoteConfig, clusterKind)
+	lookup := disthash.New()
+	clusterConfig := cluster.Configure("cluster-example", cp, lookup, remoteConfig, cluster.WithKinds(clusterKind))
 	c := cluster.New(system, clusterConfig)
-	c.Start()
 
-	// Run till signal comes
+	// Manage the cluster node's lifecycle
+	c.StartMember()
+	defer c.Shutdown(false)
+
+	// Run till a signal comes
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 	<-finish

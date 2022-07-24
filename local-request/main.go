@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/actor"
 	"log"
 	"os"
 	"os/signal"
@@ -21,7 +21,8 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		// ctx.Send() do not set sender information and hence the recipient can not respond.
+		// ctx.Send() do not set the sender information and hence the recipient can not respond to the sender;
+		// ctx.Request() sets the sender information so the receiving actor can refer to the sender's PID and respond.
 		ctx.Request(p.pongPid, &ping{})
 
 	case *pong:
@@ -31,10 +32,10 @@ func (p *pingActor) Receive(ctx actor.Context) {
 }
 
 func main() {
-	// Setup actor system
+	// Set up the actor system
 	system := actor.NewActorSystem()
 
-	// Run pong actor that receives ping payload and send back pong payload
+	// Run a pong actor that receives a ping payload and sends back a pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
@@ -47,7 +48,7 @@ func main() {
 	})
 	pongPid := system.Root.Spawn(pongProps)
 
-	// Run ping actor that receives an arbitrary payload from outside of actor system, and then send ping payload to pong actor
+	// Run a ping actor that receives an arbitrary payload from outside the actor system, and then sends a ping payload to the pong actor
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
 			pongPid: pongPid,
@@ -55,11 +56,11 @@ func main() {
 	})
 	pingPid := system.Root.Spawn(pingProps)
 
-	// Subscribe to signal to finish interaction
+	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
 	signal.Notify(finish, os.Interrupt, os.Kill)
 
-	// Periodically send ping payload till signal comes
+	// Periodically send a ping payload till a signal comes
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {

@@ -7,15 +7,14 @@ import (
 	"math"
 	"time"
 
-	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/AsynkronIT/protoactor-go/cluster"
-	"github.com/AsynkronIT/protoactor-go/remote"
-	logmod "github.com/AsynkronIT/protoactor-go/log"
-	"github.com/gogo/protobuf/proto"
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/cluster"
+	logmod "github.com/asynkron/protoactor-go/log"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
-	plog = logmod.New(logmod.InfoLevel, "[GRAIN]")
+	plog = logmod.New(logmod.InfoLevel, "[GRAIN][messages]")
 	_    = proto.Marshal
 	_    = fmt.Errorf
 	_    = math.Inf
@@ -33,7 +32,7 @@ func PongerFactory(factory func() Ponger) {
 	xPongerFactory = factory
 }
 
-// GetPongerGrainClient instantiates a new PongerGrainClient with given ID
+// GetPongerGrainClient instantiates a new PongerGrainClient with given Identity
 func GetPongerGrainClient(c *cluster.Cluster, id string) *PongerGrainClient {
 	if c == nil {
 		panic(fmt.Errorf("nil cluster instance"))
@@ -41,32 +40,55 @@ func GetPongerGrainClient(c *cluster.Cluster, id string) *PongerGrainClient {
 	if id == "" {
 		panic(fmt.Errorf("empty id"))
 	}
-	return &PongerGrainClient{ID: id, cluster: c}
+	return &PongerGrainClient{Identity: id, cluster: c}
+}
+
+// GetPongerKind instantiates a new cluster.Kind for Ponger
+func GetPongerKind(opts ...actor.PropsOption) *cluster.Kind {
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &PongerActor{
+			Timeout: 60 * time.Second,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Ponger", props)
+	return kind
+}
+
+// GetPongerKind instantiates a new cluster.Kind for Ponger
+func NewPongerKind(factory func() Ponger, timeout time.Duration ,opts ...actor.PropsOption) *cluster.Kind {
+	xPongerFactory = factory
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return &PongerActor{
+			Timeout: timeout,
+		}
+	}, opts...)
+	kind := cluster.NewKind("Ponger", props)
+	return kind
 }
 
 // Ponger interfaces the services available to the Ponger
 type Ponger interface {
-	Init(id string)
-	Terminate()
-	ReceiveDefault(ctx actor.Context)
+	Init(ctx cluster.GrainContext)
+	Terminate(ctx cluster.GrainContext)
+	ReceiveDefault(ctx cluster.GrainContext)
 	Ping(*PingMessage, cluster.GrainContext) (*PongMessage, error)
 	
 }
 
 // PongerGrainClient holds the base data for the PongerGrain
 type PongerGrainClient struct {
-	ID      string
+	Identity      string
 	cluster *cluster.Cluster
 }
 
 // Ping requests the execution on to the cluster with CallOptions
-func (g *PongerGrainClient) Ping(r *PingMessage, opts ...*cluster.GrainCallOptions) (*PongMessage, error) {
+func (g *PongerGrainClient) Ping(r *PingMessage, opts ...cluster.GrainCallOption) (*PongMessage, error) {
 	bytes, err := proto.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	reqMsg := &cluster.GrainRequest{MethodIndex: 0, MessageData: bytes}
-	resp, err := g.cluster.Call(g.ID, "Ponger", reqMsg, opts...)
+	resp, err := g.cluster.Call(g.Identity, "Ponger", reqMsg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -79,9 +101,6 @@ func (g *PongerGrainClient) Ping(r *PingMessage, opts ...*cluster.GrainCallOptio
 		}
 		return result, nil
 	case *cluster.GrainErrorResponse:
-		if msg.Code == remote.ResponseStatusCodeDeadLetter.ToInt32() {
-			return nil, remote.ErrDeadLetter
-		}
 		return nil, errors.New(msg.Err)
 	default:
 		return nil, errors.New("unknown response")
@@ -91,6 +110,7 @@ func (g *PongerGrainClient) Ping(r *PingMessage, opts ...*cluster.GrainCallOptio
 
 // PongerActor represents the actor structure
 type PongerActor struct {
+	ctx     cluster.GrainContext
 	inner   Ponger
 	Timeout time.Duration
 }
@@ -98,18 +118,19 @@ type PongerActor struct {
 // Receive ensures the lifecycle of the actor for the received message
 func (a *PongerActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *actor.Started:
+	case *actor.Started: //pass
 	case *cluster.ClusterInit:
+		a.ctx = cluster.NewGrainContext(ctx, msg.Identity, msg.Cluster)
 		a.inner = xPongerFactory()
-		a.inner.Init(msg.ID)
+		a.inner.Init(a.ctx)
+
 		if a.Timeout > 0 {
 			ctx.SetReceiveTimeout(a.Timeout)
 		}
-
-	case *actor.ReceiveTimeout:
-		a.inner.Terminate()
+	case *actor.ReceiveTimeout:		
 		ctx.Poison(ctx.Self())
-
+	case *actor.Stopped:
+		a.inner.Terminate(a.ctx)
 	case actor.AutoReceiveMessage: // pass
 	case actor.SystemMessage: // pass
 
@@ -124,7 +145,7 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 				ctx.Respond(resp)
 				return
 			}
-			r0, err := a.inner.Ping(req, ctx)
+			r0, err := a.inner.Ping(req, a.ctx)
 			if err != nil {
 				resp := &cluster.GrainErrorResponse{Err: err.Error()}
 				ctx.Respond(resp)
@@ -142,6 +163,6 @@ func (a *PongerActor) Receive(ctx actor.Context) {
 		
 		}
 	default:
-		a.inner.ReceiveDefault(ctx)
+		a.inner.ReceiveDefault(a.ctx)
 	}
 }
