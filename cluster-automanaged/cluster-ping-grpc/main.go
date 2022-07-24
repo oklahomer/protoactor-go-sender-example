@@ -16,8 +16,8 @@ import (
 var cnt uint64 = 0
 
 type pingActor struct {
-	cluster *cluster.Cluster
-	cnt     uint
+	system *actor.ActorSystem
+	cnt    uint
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
@@ -28,7 +28,7 @@ func (p *pingActor) Receive(ctx actor.Context) {
 			Cnt: cnt,
 		}
 
-		client := messages.GetPongerGrainClient(p.cluster, "ponger-1")
+		client := messages.GetPongerGrainClient(cluster.GetCluster(p.system), "ponger-1")
 		pong, err := client.Ping(ping, cluster.WithTimeout(time.Second), cluster.WithRetry(5))
 		if err != nil {
 			log.Print(err.Error())
@@ -68,7 +68,7 @@ func main() {
 	// Start a ping actor that periodically send a "ping" payload to the "Ponger" cluster grain
 	pingProps := actor.PropsFromProducer(func() actor.Actor {
 		return &pingActor{
-			cluster: c,
+			system: system,
 		}
 	})
 	pingPid := system.Root.Spawn(pingProps)
