@@ -1,12 +1,15 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
+	"github.com/lmittmann/tint"
+
 	"os"
 	"os/signal"
 	"protoactor-go-sender-example/cluster/messages"
@@ -22,7 +25,7 @@ var _ messages.Ponger = (*ponger)(nil)
 
 // Init takes care of the initialization.
 func (p *ponger) Init(ctx cluster.GrainContext) {
-	log.Printf("Initializing ponger: %s", ctx.Self().GetId())
+	slog.Info("Initializing a ponger", "id", ctx.Self().GetId())
 }
 
 // Terminate takes care of the finalization.
@@ -33,16 +36,16 @@ func (p *ponger) Terminate(ctx cluster.GrainContext) {
 	// Terminating the idle actor is effective to free unused server resource.
 	//
 	// A poison pill message is enqueued right after this method execution and the actor eventually stops.
-	log.Printf("Terminating ponger: %s", ctx.Self().GetId())
+	slog.Info("Terminating a ponger", "id", ctx.Self().GetId())
 }
 
 // ReceiveDefault is a default method to receive and handle incoming messages.
 func (p *ponger) ReceiveDefault(ctx cluster.GrainContext) {
-	log.Printf("A plain message is sent from sender: %+v", ctx.Sender())
+	slog.Info("Received a plain message from a sender", "sender", ctx.Sender())
 
 	switch msg := ctx.Message().(type) {
 	case *messages.PingMessage:
-		log.Print("Received ping message")
+		slog.Info("Received a ping message")
 		pong := &messages.PongMessage{Cnt: msg.Cnt}
 		ctx.Respond(pong)
 
@@ -55,7 +58,7 @@ func (p *ponger) ReceiveDefault(ctx cluster.GrainContext) {
 func (p *ponger) Ping(ping *messages.PingMessage, ctx cluster.GrainContext) (*messages.PongMessage, error) {
 	// The sender process is not a sending actor, but a future process
 	sender := ctx.Sender()
-	log.Printf("Received Ping call from sender. Address: %s. ID: %s.", sender.GetAddress(), sender.GetId())
+	slog.Info("Received a Ping call from a sender", "address", sender.GetAddress(), "id", sender.GetId())
 
 	pong := &messages.PongMessage{
 		Cnt: ping.Cnt,
@@ -64,8 +67,22 @@ func (p *ponger) Ping(ping *messages.PingMessage, ctx cluster.GrainContext) (*me
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Register a ponger constructor.
 	// This is called when the wrapping PongerActor is initialized.

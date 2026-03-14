@@ -1,17 +1,25 @@
 package main
 
 import (
+	"log/slog"
+	"sync/atomic"
+
 	"github.com/asynkron/protoactor-go/actor"
-	"log"
+	"github.com/lmittmann/tint"
+
 	"os"
 	"os/signal"
 	"time"
 )
 
+var counter atomic.Int64
+
 type pong struct {
+	PingMessageNum int64
 }
 
 type ping struct {
+	MessageNum int64
 }
 
 type pingActor struct {
@@ -26,33 +34,47 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		// The call to ctx.RequestFuture() itself is not blocking because its returning value is Future.
 		// However, Future.Result() blocks until the receiving actor responds
 		// or the timeout interval specified by the call to ctx.RequestFuture() passes.
-		future := ctx.RequestFuture(p.pongPid, &ping{}, time.Second)
+		future := ctx.RequestFuture(p.pongPid, &ping{MessageNum: counter.Add(1)}, time.Second)
 		result, err := future.Result()
 		if err != nil {
-			log.Print(err.Error())
+			slog.Error("Failed to receive a result", "error", err)
 			return
 		}
-		log.Printf("Received %#v", result)
+		slog.Info("Received a pong message", "message", result)
 
 	case *pong:
 		// Never comes here.
 		// When the pong actor responds to the sender,
 		// the sender is not a ping actor but a future process.
-		log.Print("Received pong message")
+		slog.Info("Received a pong message")
 
 	}
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up the actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Run a pong actor that receives a ping payload and sends back a pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
-		switch ctx.Message().(type) {
+		switch msg := ctx.Message().(type) {
 		case *ping:
-			log.Print("Received ping message")
-			ctx.Respond(&pong{})
+			slog.Info("Received a ping message", "message", msg)
+			ctx.Respond(&pong{PingMessageNum: msg.MessageNum})
 
 		default:
 
@@ -81,7 +103,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

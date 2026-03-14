@@ -1,16 +1,20 @@
 package main
 
 import (
+	"log/slog"
+	"sync/atomic"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
+	"github.com/lmittmann/tint"
+
 	"os"
 	"os/signal"
 	"protoactor-go-sender-example/remote/messages"
 	"time"
 )
 
-var cnt uint64 = 0
+var counter atomic.Uint64
 
 type pingActor struct {
 	cnt     uint
@@ -18,24 +22,37 @@ type pingActor struct {
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case struct{}:
-		cnt += 1
 		ping := &messages.Ping{
-			Cnt: cnt,
+			Cnt: counter.Add(1),
 		}
 
 		ctx.Request(p.pongPid, ping)
 
 	case *messages.Pong:
-		log.Print("Received pong message")
+		slog.Info("Received a pong message", "message", msg)
 
 	}
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Set up a remote env that listens to a randomly chosen port.
 	// To specify a port number, pass a desired port number as a second argument of remote.Configure instead of 0.
@@ -66,7 +83,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

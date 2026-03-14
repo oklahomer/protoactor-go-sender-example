@@ -1,19 +1,22 @@
 package main
 
 import (
+	"log/slog"
+	"os"
+	"os/signal"
+	"protoactor-go-sender-example/cluster/messages"
+	"sync/atomic"
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
-	"os"
-	"os/signal"
-	"protoactor-go-sender-example/cluster/messages"
-	"time"
+	"github.com/lmittmann/tint"
 )
 
-var cnt uint64 = 0
+var counter atomic.Uint64
 
 type pingActor struct {
 	system *actor.ActorSystem
@@ -23,7 +26,8 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		cnt += 1
+		cnt := counter.Add(1)
+
 		ping := &messages.PingMessage{
 			Cnt: cnt,
 		}
@@ -32,23 +36,37 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		future := ctx.RequestFuture(grainPid, ping, time.Second)
 		result, err := future.Result()
 		if err != nil {
-			log.Print(err.Error())
+			slog.Error("Failed to receive a result", "error", err)
 			return
 		}
-		log.Printf("Received %v", result)
+		slog.Info("Received a message", "message", result)
 
 	case *messages.PongMessage:
 		// Never comes here.
 		// When the pong actor responds to the sender,
 		// the sender is not a ping actor but a future process.
-		log.Print("Received pong message")
+		slog.Info("Received a pong message from a sender", "sender", ctx.Sender())
 
 	}
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Prepare a remote env that listens to 8081
 	config := remote.Configure("127.0.0.1", 8081)
@@ -69,7 +87,7 @@ func main() {
 			system: system,
 		}
 	})
-	pingPid := system.Root.Spawn(pingProps)
+	pingPid, _ := system.Root.SpawnNamed(pingProps, "PINGER")
 
 	// Subscribe to a signal to finish the interaction
 	finish := make(chan os.Signal, 1)
@@ -84,7 +102,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

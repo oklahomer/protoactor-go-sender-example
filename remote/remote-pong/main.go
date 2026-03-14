@@ -1,17 +1,35 @@
 package main
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
+	"github.com/lmittmann/tint"
+
 	"os"
 	"os/signal"
 	"protoactor-go-sender-example/remote/messages"
 )
 
 func main() {
-	// Set up the actor system
-	system := actor.NewActorSystem()
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
+	// Set up actor system
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Set up a remote env that listens to 8080
 	config := remote.Configure("127.0.0.1", 8080)
@@ -24,7 +42,7 @@ func main() {
 		switch msg := ctx.Message().(type) {
 		case *messages.Ping:
 			pong := &messages.Pong{Cnt: msg.Cnt}
-			log.Print("Received ping message")
+			slog.Info("Received a ping message", "message", msg)
 			ctx.Respond(pong)
 
 		default:
@@ -33,9 +51,10 @@ func main() {
 	})
 	pongPid, err := system.Root.SpawnNamed(pongProps, "pongActorID")
 	if err != nil {
-		log.Fatalf("Failed to spawn actor: %s.", err.Error())
+		slog.Error("Failed to spawn an actor", "error", err)
+		os.Exit(1)
 	}
-	log.Printf("Actor is running. Address: %s. ID: %s.", pongPid.Address, pongPid.Id)
+	slog.Info("An actor is running", "address", pongPid.Address, "id", pongPid.Id)
 
 	// Run till a signal comes
 	finish := make(chan os.Signal, 1)

@@ -1,19 +1,23 @@
 package main
 
 import (
+	"sync/atomic"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/automanaged"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
+	"github.com/lmittmann/tint"
+
+	"log/slog"
 	"os"
 	"os/signal"
 	"protoactor-go-sender-example/cluster/messages"
 	"time"
 )
 
-var cnt uint64 = 0
+var counter atomic.Uint64
 
 type pingActor struct {
 	system *actor.ActorSystem
@@ -23,31 +27,44 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		cnt += 1
 		ping := &messages.PingMessage{
-			Cnt: cnt,
+			Cnt: counter.Add(1),
 		}
 
 		client := messages.GetPongerGrainClient(cluster.GetCluster(p.system), "ponger-1")
-		pong, err := client.Ping(ping, cluster.WithTimeout(time.Second), cluster.WithRetry(5))
+		pong, err := client.Ping(ping, cluster.WithTimeout(time.Second), cluster.WithRetryCount(5))
 		if err != nil {
-			log.Print(err.Error())
+			slog.Error("Failed to receive a result", "error", err)
 			return
 		}
-		log.Printf("Received %v", pong)
+		slog.Info("Received a message", "message", pong)
 
 	case *messages.PongMessage:
 		// Never comes here.
 		// When the pong grain responds to the sender's gRPC call,
 		// the sender is not a ping actor but a future process.
-		log.Print("Received pong message")
+		slog.Info("Received a pong message from a sender")
 
 	}
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Prepare a remote env that listens to 8081
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
@@ -86,7 +103,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}
