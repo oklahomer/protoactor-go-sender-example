@@ -4,9 +4,9 @@ go 1.25.3
 
 require (
 	github.com/asynkron/protoactor-go v0.0.0-20260118094027-288962e52f3f
-	github.com/lmittmann/tint v1.1.2
-	go.etcd.io/etcd/client/v3 v3.6.6
-	google.golang.org/protobuf v1.36.10
+	github.com/lmittmann/tint v1.1.3
+	go.etcd.io/etcd/client/v3 v3.6.8
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -53,8 +53,8 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.6 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.6 // indirect
+	go.etcd.io/etcd/api/v3 v3.6.8 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.6.8 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.60.0 // indirect
