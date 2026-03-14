@@ -1,15 +1,16 @@
 syntax = "proto3";
 package messages;
+
 option go_package = "protoactor-go-sender-example/cluster/messages";
 
 message PingMessage {
-    uint64 cnt = 1;
+  uint64 cnt = 1;
 }
 
 message PongMessage {
-    uint64 cnt = 1;
+  uint64 cnt = 1;
 }
 
 service Ponger {
-    rpc Ping(PingMessage) returns (PongMessage) {}
+  rpc Ping(PingMessage) returns (PongMessage) {}
 }

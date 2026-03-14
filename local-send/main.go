@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/asynkron/protoactor-go/actor"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/lmittmann/tint"
 )
 
 type pong struct {
@@ -21,7 +23,7 @@ type pingActor struct {
 func (p *pingActor) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case struct{}:
-		// Below do not set ctx.Self() as a sender, and hence the recipient has no knowledge of the sender actor
+		// Below does not set ctx.Self() as a sender, and hence the recipient has no knowledge of the sender actor
 		// even though the message is sent from one actor to another.
 		// Use ctx.Request() or ctx.RequestFuture() when expecting a response.
 		ctx.Send(p.pongPid, &ping{})
@@ -29,20 +31,33 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	case *pong:
 		// Never comes here.
 		// When the pong actor tries to respond, the sender is not set.
-		log.Print("Received pong message")
+		slog.Info("Received a pong message")
 
 	}
 }
 
 func main() {
-	// Set up actor system
-	system := actor.NewActorSystem()
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
 
+	// Set up actor system
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 	// Run a pong actor that receives a ping payload and sends back a pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
-			log.Print("Received ping message")
+			slog.Info("Received a ping message")
 
 			// This call fails and ends up with a dead letter because the sender did not set the sender information.
 			ctx.Respond(&pong{})
@@ -74,7 +89,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

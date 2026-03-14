@@ -2,7 +2,9 @@ package main
 
 import (
 	"github.com/asynkron/protoactor-go/actor"
-	"log"
+	"github.com/lmittmann/tint"
+
+	"log/slog"
 	"os"
 	"os/signal"
 	"time"
@@ -26,20 +28,34 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		ctx.Request(p.pongPid, &ping{})
 
 	case *pong:
-		log.Print("Received pong message")
+		slog.Info("Received a pong message")
 
 	}
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up the actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Run a pong actor that receives a ping payload and sends back a pong payload
 	pongProps := actor.PropsFromFunc(func(ctx actor.Context) {
 		switch ctx.Message().(type) {
 		case *ping:
-			log.Print("Received ping message")
+			slog.Info("Received a ping message")
 			ctx.Respond(&pong{})
 
 		default:
@@ -69,7 +85,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

@@ -1,16 +1,20 @@
 package main
 
 import (
+	"log/slog"
+	"sync/atomic"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
+	"github.com/lmittmann/tint"
+
 	"os"
 	"os/signal"
 	"protoactor-go-sender-example/remote/messages"
 	"time"
 )
 
-var cnt uint64 = 0
+var counter atomic.Uint64
 
 type pingActor struct {
 	cnt     uint
@@ -18,11 +22,10 @@ type pingActor struct {
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case struct{}:
-		cnt += 1
 		ping := &messages.Ping{
-			Cnt: cnt,
+			Cnt: counter.Add(1),
 		}
 
 		// Besides the fact that a payload is serialized and is sent to a remove environment,
@@ -30,23 +33,37 @@ func (p *pingActor) Receive(ctx actor.Context) {
 		future := ctx.RequestFuture(p.pongPid, ping, time.Second)
 		result, err := future.Result()
 		if err != nil {
-			log.Print(err.Error())
+			slog.Error("Failed to receive a result", "error", err)
 			return
 		}
-		log.Printf("Received %v", result)
+		slog.Info("Received a message", "message", result)
 
 	case *messages.Pong:
 		// Never comes here.
 		// When the pong actor responds to the sender,
 		// the sender is not a ping actor but a future process.
-		log.Print("Received pong message")
+		slog.Info("Received a pong message", "message", msg)
 
 	}
 }
 
 func main() {
-	// Set up the actor system
-	system := actor.NewActorSystem()
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
+	// Set up actor system
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Set up a remote env that listens to a randomly chosen port.
 	// To specify a port number, pass a desired port number as a second argument of remote.Configure instead of 0.
@@ -78,7 +95,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

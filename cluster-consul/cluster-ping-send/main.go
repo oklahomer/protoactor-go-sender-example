@@ -1,19 +1,23 @@
 package main
 
 import (
+	"log/slog"
+	"sync/atomic"
+
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/cluster"
 	"github.com/asynkron/protoactor-go/cluster/clusterproviders/consul"
 	"github.com/asynkron/protoactor-go/cluster/identitylookup/disthash"
 	"github.com/asynkron/protoactor-go/remote"
-	"log"
+	"github.com/lmittmann/tint"
+
 	"os"
 	"os/signal"
 	"protoactor-go-sender-example/cluster/messages"
 	"time"
 )
 
-var cnt uint64 = 0
+var counter atomic.Uint64
 
 type pingActor struct {
 	system *actor.ActorSystem
@@ -21,11 +25,10 @@ type pingActor struct {
 }
 
 func (p *pingActor) Receive(ctx actor.Context) {
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case struct{}:
-		cnt += 1
 		ping := &messages.PingMessage{
-			Cnt: cnt,
+			Cnt: counter.Add(1),
 		}
 
 		grainPid := cluster.GetCluster(p.system).Get("ponger-1", "Ponger")
@@ -37,17 +40,30 @@ func (p *pingActor) Receive(ctx actor.Context) {
 	case *messages.PongMessage:
 		// Never comes here because the recipient can not refer to the sender.
 		// Instead, the cluster grain leaves logs as below:
-		// YYYY/MM/DD hh:mm:ss Received ping message
-		// YYYY/MM/DD hh:mm:ss DEBUG [ACTOR]       [DeadLetter] pid="<nil>" msg=*messages.PongMessage sender="<nil>"
-		//
-		log.Print("Received pong message")
+		// hh:mm:ss INF Received ping message
+		// hh:mm:ss INF [DeadLetter] system=NeyzJ6ZJ3DV7GNMFYz7R8H pid=<nil> message=cnt:84 sender=<nil>
+		slog.Info("Received a pong message", "message", msg)
 
 	}
 }
 
 func main() {
+	// Set up a logger to observe the behavior
+	logger := slog.New(tint.NewHandler(
+		os.Stdout,
+		&tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.TimeOnly,
+		},
+	))
+	slog.SetDefault(logger)
+
 	// Set up actor system
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(
+		actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+			return logger.With("system", system.ID)
+		}),
+	)
 
 	// Prepare a remote env that listens to 8081
 	remoteConfig := remote.Configure("127.0.0.1", 8081)
@@ -55,7 +71,8 @@ func main() {
 	// Configure a cluster on top of the above remote env
 	cp, err := consul.New()
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to create a consul provider", "error", err)
+		os.Exit(1)
 	}
 	lookup := disthash.New()
 	clusterConfig := cluster.Configure("cluster-example", cp, lookup, remoteConfig)
@@ -86,7 +103,7 @@ func main() {
 			system.Root.Send(pingPid, struct{}{})
 
 		case <-finish:
-			log.Print("Finish")
+			slog.Info("Finish")
 			return
 
 		}

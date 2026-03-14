@@ -3,6 +3,6 @@
 ![](https://raw.githubusercontent.com/oklahomer/protoactor-go-sender-example/main/docs/etcd.png)
 
 ```
-docker build --rm -t protoactor-go-sample-etcd:latest consul
+docker build --rm -t protoactor-go-sample-etcd:latest etcd
 docker run -p 2379:2379 protoactor-go-sample-etcd
 ```
