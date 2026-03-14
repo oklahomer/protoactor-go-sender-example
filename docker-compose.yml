@@ -1,14 +1,25 @@
-version: "3"
 services:
   etcd:
-    build:
-      context: ./cluster-etcd/etcd
-      dockerfile: Dockerfile
+    image: quay.io/coreos/etcd:v3.5.17
     ports:
       - "2379:2379"
+    command:
+      - etcd
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://127.0.0.1:2379
+      - --auto-compaction-retention=1
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   consul:
-    build:
-      context: ./cluster-consul/consul
-      dockerfile: Dockerfile
+    image: hashicorp/consul:1.15
     ports:
       - "8500:8500"
+    command: agent -server -dev -bootstrap -client=0.0.0.0
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
