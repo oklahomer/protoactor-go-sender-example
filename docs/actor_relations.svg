@@ -1,0 +1,110 @@
+<svg width="680" viewBox="0 0 680 670" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    text { font-family: sans-serif; fill: #222; }
+    .ts { font-size: 12px; }
+    .th { font-size: 14px; font-weight: 500; }
+    .lbg { fill: white; }
+  </style>
+</defs>
+
+<!-- background -->
+<rect width="680" height="670" fill="white"/>
+
+<!-- ── Process B ── -->
+<rect x="240" y="20" width="280" height="110" rx="10" stroke-width="1.2" fill="#EEEDFE" stroke="#534AB7"/>
+<text class="ts" x="254" y="38" font-weight="500" fill="#3C3489">Process B</text>
+<!-- Actor D -->
+<rect x="260" y="50" width="88" height="60" rx="8" stroke-width="1" fill="#CECBF6" stroke="#534AB7"/>
+<text class="th" x="304" y="83" text-anchor="middle" dominant-baseline="central" fill="#26215C">Actor D</text>
+<!-- Actor E -->
+<rect x="406" y="50" width="88" height="60" rx="8" stroke-width="1" fill="#CECBF6" stroke="#534AB7"/>
+<text class="th" x="450" y="83" text-anchor="middle" dominant-baseline="central" fill="#26215C">Actor E</text>
+<!-- Local arrow D↔E (no white bg) -->
+<line x1="348" y1="80" x2="406" y2="80" stroke="#7F77DD" stroke-width="1.4" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text class="ts" x="377" y="73" text-anchor="middle" fill="#7F77DD" font-weight="500">Local</text>
+
+<!-- ── Process A ── -->
+<rect x="10" y="160" width="230" height="185" rx="10" stroke-width="1.2" fill="#E1F5EE" stroke="#0F6E56"/>
+<text class="ts" x="24" y="178" font-weight="500" fill="#085041">Process A</text>
+<!-- Actor A -->
+<rect x="26" y="190" width="76" height="56" rx="8" stroke-width="1" fill="#9FE1CB" stroke="#0F6E56"/>
+<text class="th" x="64" y="220" text-anchor="middle" dominant-baseline="central" fill="#04342C">Actor A</text>
+<!-- Actor B -->
+<rect x="142" y="190" width="76" height="56" rx="8" stroke-width="1" fill="#9FE1CB" stroke="#0F6E56"/>
+<text class="th" x="180" y="220" text-anchor="middle" dominant-baseline="central" fill="#04342C">Actor B</text>
+<!-- Local arrow A↔B (no white bg) -->
+<line x1="102" y1="218" x2="142" y2="218" stroke="#1D9E75" stroke-width="1.4" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text class="ts" x="122" y="210" text-anchor="middle" fill="#1D9E75" font-weight="500">Local</text>
+<!-- Actor C -->
+<rect x="142" y="278" width="76" height="48" rx="8" stroke-width="1" fill="#9FE1CB" stroke="#0F6E56"/>
+<text class="th" x="180" y="304" text-anchor="middle" dominant-baseline="central" fill="#04342C">Actor C</text>
+<!-- Local arrow B↔C (no white bg) -->
+<line x1="180" y1="246" x2="180" y2="278" stroke="#1D9E75" stroke-width="1.4" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text class="ts" x="198" y="267" fill="#1D9E75" font-weight="500">Local</text>
+
+<!-- ── Remote: Actor B right-top (218,190) → Actor D left-bottom (260,110) ── -->
+<line x1="218" y1="190" x2="260" y2="110" stroke="#E24B4A" stroke-width="1.6" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<rect x="207" y="135" width="64" height="16" class="lbg"/>
+<text class="ts" x="239" y="143" text-anchor="middle" fill="#E24B4A" font-weight="500">Remote</text>
+
+<!-- ── ClusterProvider ── -->
+<rect x="290" y="248" width="130" height="64" rx="10" stroke-width="1.2" fill="#FAC775" stroke="#BA7517"/>
+<text class="th" x="355" y="270" text-anchor="middle" dominant-baseline="central" fill="#412402">Cluster</text>
+<text class="th" x="355" y="288" text-anchor="middle" dominant-baseline="central" fill="#412402">Provider</text>
+
+<!-- Ask for availability -->
+<path d="M450 110 Q445 180 420 248" fill="none" stroke="#BA7517" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="415" y="167" width="72" height="30" class="lbg"/>
+<text class="ts" x="450" y="175" text-anchor="middle" fill="#BA7517" font-weight="500">Ask for</text>
+<text class="ts" x="450" y="189" text-anchor="middle" fill="#BA7517" font-weight="500">availability</text>
+
+<!-- ── Cloud / Cluster boundary ── -->
+<ellipse cx="400" cy="490" rx="182" ry="108" fill="none" stroke="#aaa" stroke-width="1.5" stroke-dasharray="6 3"/>
+<rect x="360" y="387" width="80" height="16" class="lbg"/>
+<text class="ts" x="400" y="396" text-anchor="middle" font-weight="500" fill="#666">Cluster</text>
+
+<!-- Process D (unavailable) -->
+<rect x="244" y="432" width="132" height="92" rx="10" stroke-width="1.2" fill="#D3D1C7" stroke="#888780" fill-opacity="0.5"/>
+<text class="ts" x="258" y="450" font-weight="500" fill="#5F5E5A">Process D</text>
+<rect x="260" y="462" width="100" height="44" rx="7" stroke-width="0.8" fill="#B4B2A9" stroke="#888780" fill-opacity="0.5"/>
+<text class="th" x="310" y="486" text-anchor="middle" dominant-baseline="central" fill="#5F5E5A">Grain A</text>
+<text class="ts" x="310" y="542" text-anchor="middle" fill="#888" font-style="italic">Currently unavailable</text>
+
+<!-- Process C (available) -->
+<rect x="434" y="432" width="132" height="92" rx="10" stroke-width="1.2" fill="#E6F1FB" stroke="#185FA5"/>
+<text class="ts" x="448" y="450" font-weight="500" fill="#0C447C">Process C</text>
+<rect x="450" y="462" width="100" height="44" rx="7" stroke-width="1" fill="#B5D4F4" stroke="#185FA5"/>
+<text class="th" x="500" y="486" text-anchor="middle" dominant-baseline="central" fill="#042C53">Grain A</text>
+
+<!-- ClusterProvider ↔ Process D: manage membership (dashed) -->
+<path d="M330 312 Q310 380 310 432" fill="none" stroke="#888" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#arrow)" marker-start="url(#arrow)" opacity="0.7"/>
+<rect x="272" y="366" width="88" height="30" class="lbg"/>
+<text class="ts" x="316" y="374" text-anchor="middle" fill="#666" font-weight="500">manage</text>
+<text class="ts" x="316" y="388" text-anchor="middle" fill="#666" font-weight="500">membership</text>
+
+<!-- ClusterProvider ↔ Process C: manage membership (solid blue) -->
+<path d="M400 312 Q450 370 490 432" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<rect x="432" y="358" width="88" height="30" class="lbg"/>
+<text class="ts" x="476" y="366" text-anchor="middle" fill="#185FA5" font-weight="500">manage</text>
+<text class="ts" x="476" y="380" text-anchor="middle" fill="#185FA5" font-weight="500">membership</text>
+
+<!-- Actor E → Grain A top-right (550,462) -->
+<path d="M494 80 Q620 260 550 462" fill="none" stroke="#185FA5" stroke-width="1.3" marker-end="url(#arrow)"/>
+<rect x="550" y="232" width="68" height="30" class="lbg"/>
+<text class="ts" x="584" y="240" text-anchor="middle" fill="#185FA5" font-weight="500">gRPC /</text>
+<text class="ts" x="584" y="254" text-anchor="middle" fill="#185FA5" font-weight="500">remote call</text>
+
+<!-- ── Legend ── -->
+<line x1="30" y1="630" x2="56" y2="630" stroke="#1D9E75" stroke-width="1.5"/>
+<text class="ts" x="62" y="634" fill="#222">Local</text>
+<line x1="118" y1="630" x2="144" y2="630" stroke="#E24B4A" stroke-width="1.5"/>
+<text class="ts" x="150" y="634" fill="#222">Remote</text>
+<line x1="224" y1="630" x2="250" y2="630" stroke="#185FA5" stroke-width="1.5"/>
+<text class="ts" x="256" y="634" fill="#222">gRPC / plain remote</text>
+<line x1="402" y1="630" x2="428" y2="630" stroke="#888" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>
+<text class="ts" x="434" y="634" fill="#222">Unavailable path</text>
+</svg>
